@@ -1,0 +1,2 @@
+#!/bin/bash
+chmod -R +x directory_name
