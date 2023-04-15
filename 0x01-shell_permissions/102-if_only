@@ -1,2 +1,2 @@
 #!/bin/bash
-if [ -f guillaume ] mv hello betty
+if [ betty=guillaume ] mv hello betty
