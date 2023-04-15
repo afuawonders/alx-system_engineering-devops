@@ -1,2 +1,2 @@
 #!/bin/bash
-apt-get install vlc
+telnet towel.blinkenlights.nl
