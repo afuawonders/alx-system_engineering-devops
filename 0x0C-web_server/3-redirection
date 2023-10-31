@@ -7,10 +7,27 @@ apt-get update
 apt-get install -y nginx
 
 # Configure Nginx redirection
-echo "Hello World!" | sudo tee /var/www/html/index.html
+echo "server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
 
-replacement_string="server_name _;\n\trewrite ^\/redirect_me https://www.youtube.com/watch?v=AJN9uU35VVs permanent;"
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=AJN9uU35VVs;
+    }
 
-sudo sed -i "s/server_name _;/$replacement_string/" /etc/nginx/sites-enabled/default
+    location /redirected_page {
+        return 200 'This page has been redirected!';
+    }
 
-sudo service nginx restart
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    root /var/www/html;
+    index index.html;
+}" > /etc/nginx/sites-enabled/default
+
+# Restart Nginx
+service nginx restart
+
