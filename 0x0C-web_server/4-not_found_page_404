@@ -1,1 +1,33 @@
+#!/usr/bin/env bash
+# Installs, configures, and starts the server
+#!/bin/bash
+
+# Install Nginx
+apt-get update
+apt-get install -y nginx
+
+# Configure Nginx redirection
+echo "server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=AJN9uU35VVs;
+    }
+
+    location /redirected_page {
+        return 200 'This page has been redirected!';
+    }
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    root /var/www/html;
+    index index.html;
+}" > /etc/nginx/sites-enabled/default
+
+# Restart Nginx
+service nginx restart
 
