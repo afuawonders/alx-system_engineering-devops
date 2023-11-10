@@ -4,6 +4,7 @@ global
     user    haproxy
     group   haproxy
     tune.ssl.default-dh-param 2048
+
 defaults
     log     global
     mode    http
@@ -30,8 +31,8 @@ frontend www-http
     default_backend www-backend
 
 frontend www-https
-    bind   0.0.0.0:443 ssl crt /etc/letsencrypt/archive/www.bcodesolutions.tech/www.bcodesolutions.tech.pem
-    http-request add-header X-Fowarded-Proto https
+    bind   0.0.0.0:443 ssl crt /etc/letsencrypt/live/www.hitxgh.com/fullchain.pem
+    http-request add-header X-Forwarded-Proto https
     acl letsencrypt-acl path_beg /.well-known/acme-challenge/
     use_backend letsencrypt-backend if letsencrypt-acl
     default_backend www-backend
@@ -39,8 +40,9 @@ frontend www-https
 backend www-backend
    balance roundrobin
    redirect scheme https if !{ ssl_fc }
-   server web-01 54.208.215.43:80 check
-   server web-02 52.91.151.149:80 check
+   server web-01 52.207.208.66:80 check
+   server web-02 54.236.239.243:80 check
 
 backend letsencrypt-backend
    server letsencrypt 127.0.0.1:54321
+
