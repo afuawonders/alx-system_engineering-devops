@@ -1,55 +1,61 @@
 #!/usr/bin/python3
-"""
-parses the title of all hot articles, and prints a sorted count of given
-keywords (case-insensitive, delimited by spaces)
-"""
-from collections import OrderedDict
+""" A recursive function that queries the Reddit API"""
 from requests import get
 
+REDDIT = "https://www.reddit.com/"
+HEADERS = {'user-agent': 'fzl_26'}
 
-def count_words(subreddit, word_list, after=None, match_dict={}):
-    """parses the title of all hot articles, and prints a sorted count of given
-    keywords (case-insensitive, delimited by spaces)
-    Args:
-        subreddit (str): subreddit
-        word_list (list): list of words to count occurrences for
-        after (str): refer to next page
-        match_dict (dict): dictionary of frequency of words from word_list
-        flag (int): indicate when match_dict is complete
+
+def count_words(subreddit, word_list, after="", word_dic={}):
     """
+    Returns a list containing the titles of all hot articles for a
+    given subreddit. If no results are found for the given subreddit,
+    the function should return None.
+    """
+    if not word_dic:
+        for word in word_list:
+            word_dic[word] = 0
+
+    if after is None:
+        word_list = [[key, value] for key, value in word_dic.items()]
+        word_list = sorted(word_list, key=lambda x: (-x[1], x[0]))
+        for w in word_list:
+            if w[1]:
+                print("{}: {}".format(w[0].lower(), w[1]))
+        return None
+
+    url = REDDIT + "r/{}/hot/.json".format(subreddit)
+
+    params = {
+        'limit': 100,
+        'after': after
+    }
+
+    r = get(url, headers=HEADERS, params=params, allow_redirects=False)
+
+    if r.status_code != 200:
+        return None
+
     try:
-        r = get('https://www.reddit.com/r/{}/hot.json?limit=100&&'
-                'after={}'.format(subreddit, after),
-                headers={'User-Agent': 'bc'})
-        sub_dict = r.json()
+        js = r.json()
 
-        if match_dict == {}:
+    except ValueError:
+        return None
+
+    try:
+
+        data = js.get("data")
+        after = data.get("after")
+        children = data.get("children")
+        for child in children:
+            post = child.get("data")
+            title = post.get("title")
+            lower = [s.lower() for s in title.split(' ')]
+
             for w in word_list:
-                match_dict[w] = 0
+                word_dic[w] += lower.count(w.lower())
 
-        after = sub_dict['data']['after']
-
-        for i in range(len(sub_dict['data']['children'])):
-            title_string = sub_dict['data']['children'][i]['data']['title']
-            search_list = title_string.split()
-            for word in search_list:
-                for w in word_list:
-                    if w.lower() == word.lower():
-                        match_dict[w] += 1
-
-        if after is None:
-            descend_dict = OrderedDict(sorted(match_dict.items(),
-                                              key=lambda x: x[1],
-                                              reverse=True))
-            zero_count = 0
-            for k, v in descend_dict.items():
-                if v != 0:
-                    print("{}: {}".format(k, v))
-                else:
-                    zero_count += 1
-            if zero_count == len(descend_dict):
-                print()
-        else:
-            count_words(subreddit, word_list, after, match_dict)
     except:
-        pass
+        return None
+
+    count_words(subreddit, word_list, after, word_dic)
