@@ -1,35 +1,42 @@
-#!/usr/bin/python3
-"""
-Display number of occurrences of keywords in hot post titles (case-insensitive)
-"""
-import re
 import requests
 
-API = 'https://www.reddit.com/r/{}/hot.json'
+def count_words(subreddit, word_list, after=None, results=None):
+    if results is None:
+        results = {}
 
+    headers = {"User-Agent": "linux:0x16.api.advanced:v1.0.0 (by /u/bdov_)"}
+    params = {"limit": 100, "after": after}
 
-def count_words(subreddit, wordlist, nums=None, after=None):
-    """
-    Query reddit for hot posts and print total occurrences of each keyword
-    """
-    r = requests.get(
-        API.format(subreddit),
-        headers={'User-Agent': 'Mozilla/5.0'},
-        params={'after': after, 'limit': 100},
-        allow_redirects=False,
-    )
-    if r.status_code == 200:
-        nums = nums or dict.fromkeys(wordlist, 0)
-        data = r.json()['data']
-        page = [word for post in data['children']
-                for word in post['data']['title'].split()]
-        for key in wordlist:
-            for word in page:
-                if key.casefold() == word.casefold():
-                    nums[key] += 1
-        if data['after'] is None:
-            keys = sorted(filter(nums.get, nums), key=lambda k: (-nums[k], k))
-            for key in keys:
-                print('{}: {}'.format(key, nums[key]))
+    try:
+        response = requests.get(f"https://www.reddit.com/r/{subreddit}/hot.json", headers=headers, params=params, allow_redirects=False)
+        data = response.json().get("data", {})
+        children = data.get("children", [])
+
+        for child in children:
+            title = child.get("data", {}).get("title", "").lower()
+
+            for keyword in word_list:
+                keyword_lower = keyword.lower()
+                if keyword_lower in title:
+                    results[keyword_lower] = results.get(keyword_lower, 0) + title.count(keyword_lower)
+
+        if data.get("after") is not None:
+            count_words(subreddit, word_list, after=data["after"], results=results)
         else:
-            count_words(subreddit, wordlist, nums, data['after'])
+            sorted_results = sorted(results.items(), key=lambda x: (-x[1], x[0]))
+
+            for keyword, count in sorted_results:
+                print(f"{keyword}: {count}")
+
+    except Exception as e:
+        pass  # Handle exceptions if needed (e.g., invalid subreddit)
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) < 3:
+        print("Usage: {} <subreddit> <list of keywords>".format(sys.argv[0]))
+        print("Ex: {} programming 'python java javascript'".format(sys.argv[0]))
+    else:
+        count_words(sys.argv[1], [x for x in sys.argv[2].split()])
+
