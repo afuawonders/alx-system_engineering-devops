@@ -1,55 +1,35 @@
 #!/usr/bin/python3
 """
-parses the title of all hot articles, and prints a sorted count of given
-keywords (case-insensitive, delimited by spaces)
+Display number of occurrences of keywords in hot post titles (case-insensitive)
 """
-from collections import OrderedDict
-from requests import get
+import re
+import requests
+
+API = 'https://www.reddit.com/r/{}/hot.json'
 
 
-def count_words(subreddit, word_list, after=None, match_dict={}):
-    """parses the title of all hot articles, and prints a sorted count of given
-    keywords (case-insensitive, delimited by spaces)
-    Args:
-        subreddit (str): subreddit
-        word_list (list): list of words to count occurrences for
-        after (str): refer to next page
-        match_dict (dict): dictionary of frequency of words from word_list
-        flag (int): indicate when match_dict is complete
+def count_words(subreddit, wordlist, nums=None, after=None):
     """
-    try:
-        r = get('https://www.reddit.com/r/{}/hot.json?limit=100&&'
-                'after={}'.format(subreddit, after),
-                headers={'User-Agent': 'bc'})
-        sub_dict = r.json()
-
-        if match_dict == {}:
-            for w in word_list:
-                match_dict[w] = 0
-
-        after = sub_dict['data']['after']
-
-        for i in range(len(sub_dict['data']['children'])):
-            title_string = sub_dict['data']['children'][i]['data']['title']
-            search_list = title_string.split()
-            for word in search_list:
-                for w in word_list:
-                    if w.lower() == word.lower():
-                        match_dict[w] += 1
-
-        if after is None:
-            descend_dict = OrderedDict(sorted(match_dict.items(),
-                                              key=lambda x: x[1],
-                                              reverse=True))
-            zero_count = 0
-            for k, v in descend_dict.items():
-                if v != 0:
-                    print("{}: {}".format(k, v))
-                else:
-                    zero_count += 1
-            if zero_count == len(descend_dict):
-                print()
+    Query reddit for hot posts and print total occurrences of each keyword
+    """
+    r = requests.get(
+        API.format(subreddit),
+        headers={'User-Agent': 'Mozilla/5.0'},
+        params={'after': after, 'limit': 100},
+        allow_redirects=False,
+    )
+    if r.status_code == 200:
+        nums = nums or dict.fromkeys(wordlist, 0)
+        data = r.json()['data']
+        page = [word for post in data['children']
+                for word in post['data']['title'].split()]
+        for key in wordlist:
+            for word in page:
+                if key.casefold() == word.casefold():
+                    nums[key] += 1
+        if data['after'] is None:
+            keys = sorted(filter(nums.get, nums), key=lambda k: (-nums[k], k))
+            for key in keys:
+                print('{}: {}'.format(key, nums[key]))
         else:
-            count_words(subreddit, word_list, after, match_dict)
-    except:
-        pass
+            count_words(subreddit, wordlist, nums, data['after'])
