@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-Interpretes the title of all hot articles, and prints a sorted count of given
+parses the title of all hot articles, and prints a sorted count of given
 keywords (case-insensitive, delimited by spaces)
 """
 from collections import OrderedDict
@@ -8,7 +8,7 @@ from requests import get
 
 
 def count_words(subreddit, word_list, after=None, match_dict={}):
-    """Interpretes the title of all hot articles, and prints a sorted count of given
+    """parses the title of all hot articles, and prints a sorted count of given
     keywords (case-insensitive, delimited by spaces)
     Args:
         subreddit (str): subreddit
